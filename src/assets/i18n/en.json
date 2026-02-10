@@ -1,0 +1,79 @@
+{
+  "common": {
+    "logout": "Log out",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "loading": "Loading…",
+    "empty": "No data",
+    "score": "Score"
+  },
+  "header": {
+    "brand": "IT Project Management",
+    "dashboard": "Dashboard",
+    "submissions": "Submissions",
+    "prioritization": "Prioritization",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "login": {
+    "title": "IT Project Management",
+    "subtitle": "Sign in with your company account",
+    "google": "Sign in with Google",
+    "devMode": "Dev mode: test views by role",
+    "asFunctional": "Enter as functional",
+    "asDeveloper": "Enter as developer"
+  },
+  "submissions": {
+    "title": "My submissions",
+    "new": "New submission",
+    "empty": "You have no submissions.",
+    "createOne": "Create one",
+    "backToList": "Back to my submissions",
+    "formTitle": "New submission",
+    "type": "Type",
+    "requestTitle": "Title",
+    "requestTitlePlaceholder": "Brief summary",
+    "description": "Description",
+    "descriptionPlaceholder": "Detail the problem or request",
+    "urgency": "Urgency",
+    "importance": "Importance",
+    "complexity": "Complexity",
+    "submit": "Submit request",
+    "titleRequired": "Title is required.",
+    "descriptionRequired": "Description is required.",
+    "typeIncidencia": "Incident",
+    "typeMejora": "Improvement",
+    "typeProyecto": "Project"
+  },
+  "dashboard": {
+    "title": "Transparency Board",
+    "teamFocus": "Team Focus",
+    "priorityQueue": "Priority Queue",
+    "metrics": "Workload Distribution",
+    "currentTask": "Current task",
+    "noTask": "No task assigned",
+    "total": "Total",
+    "requests": "requests"
+  },
+  "matrix": {
+    "title": "Eisenhower Matrix",
+    "description": "Drag cards between quadrants to update urgency and importance.",
+    "axisHint": "X-axis: Urgency · Y-axis: Importance",
+    "q1": "Urgent + Important",
+    "q2": "Not urgent + Important",
+    "q3": "Urgent + Not important",
+    "q4": "Not urgent + Not important"
+  },
+  "status": {
+    "backlog": "Backlog",
+    "prioritized": "Prioritized",
+    "in_progress": "In Progress",
+    "done": "Completed"
+  },
+  "types": {
+    "incidencia": "Incident",
+    "mejora": "Improvement",
+    "proyecto": "Project"
+  }
+}
