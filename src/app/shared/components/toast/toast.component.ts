@@ -5,13 +5,14 @@ import { ToastService, Toast } from '../../../core/services/toast.service';
   selector: 'app-toast',
   standalone: true,
   template: `
-    <div class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
+    <div class="fixed bottom-20 lg:bottom-4 right-4 z-[100] flex flex-col gap-2">
       @for (toast of toasts.toasts(); track toast.id) {
         <div
-          class="flex min-w-[280px] max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm transition-all duration-300"
-          [class]="containerClass(toast)"
+          class="flex min-w-[280px] max-w-sm items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg animate-slide-up"
+          [style.background]="containerBg(toast)"
+          [style.border-color]="containerBorder(toast)"
+          [style.color]="containerText(toast)"
         >
-          <!-- Icon -->
           <div class="shrink-0 pt-0.5" [innerHTML]="iconSvg(toast)"></div>
           <p class="flex-1 text-sm font-medium">{{ toast.message }}</p>
           <button (click)="toasts.dismiss(toast.id)" class="shrink-0 opacity-60 hover:opacity-100">
@@ -27,17 +28,30 @@ import { ToastService, Toast } from '../../../core/services/toast.service';
 export class ToastComponent {
   toasts = inject(ToastService);
 
-  containerClass(toast: Toast): string {
-    const base = 'border';
+  containerBg(toast: Toast): string {
     switch (toast.type) {
-      case 'success':
-        return `${base} bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300`;
-      case 'error':
-        return `${base} bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300`;
-      case 'warning':
-        return `${base} bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300`;
-      default:
-        return `${base} bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300`;
+      case 'success': return 'color-mix(in srgb, var(--lime) 10%, var(--surface-card))';
+      case 'error':   return 'color-mix(in srgb, var(--magenta) 10%, var(--surface-card))';
+      case 'warning': return 'color-mix(in srgb, var(--orange) 10%, var(--surface-card))';
+      default:        return 'color-mix(in srgb, var(--primary-light) 10%, var(--surface-card))';
+    }
+  }
+
+  containerBorder(toast: Toast): string {
+    switch (toast.type) {
+      case 'success': return 'color-mix(in srgb, var(--lime) 30%, transparent)';
+      case 'error':   return 'color-mix(in srgb, var(--magenta) 30%, transparent)';
+      case 'warning': return 'color-mix(in srgb, var(--orange) 30%, transparent)';
+      default:        return 'color-mix(in srgb, var(--primary-light) 30%, transparent)';
+    }
+  }
+
+  containerText(toast: Toast): string {
+    switch (toast.type) {
+      case 'success': return 'var(--lime)';
+      case 'error':   return 'var(--magenta)';
+      case 'warning': return 'var(--orange)';
+      default:        return 'var(--primary-light)';
     }
   }
 

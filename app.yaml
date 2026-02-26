@@ -1,0 +1,48 @@
+# App Engine Standard (SPA Angular)
+# Antes de desplegar:
+# 1) npm ci
+# 2) npm run build
+# 3) gcloud app deploy app.yaml
+
+service: gestion-proyectos
+runtime: nodejs22
+env: standard
+
+instance_class: F1
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+  max_concurrent_requests: 80
+
+handlers:
+  # Hashed static assets (JS, CSS) — immutable cache
+  - url: /(.+\.(js|css))$
+    static_files: dist/gestion-proyectos/browser/\1
+    upload: dist/gestion-proyectos/browser/(.+\.(js|css))$
+    secure: always
+    http_headers:
+      Cache-Control: "public, max-age=31536000, immutable"
+      X-Content-Type-Options: "nosniff"
+
+  # Other static assets (images, fonts, manifests)
+  - url: /(.+\.(json|txt|png|jpg|jpeg|gif|svg|ico|webmanifest|woff|woff2|ttf|eot))$
+    static_files: dist/gestion-proyectos/browser/\1
+    upload: dist/gestion-proyectos/browser/(.+\.(json|txt|png|jpg|jpeg|gif|svg|ico|webmanifest|woff|woff2|ttf|eot))$
+    secure: always
+    http_headers:
+      Cache-Control: "public, max-age=86400"
+      X-Content-Type-Options: "nosniff"
+
+  # Fallback for SPA routing (Angular Router)
+  - url: /.*
+    static_files: dist/gestion-proyectos/browser/index.html
+    upload: dist/gestion-proyectos/browser/index.html
+    secure: always
+    http_headers:
+      Cache-Control: "no-cache"
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+      Permissions-Policy: "camera=(), microphone=(), geolocation=()"
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains"

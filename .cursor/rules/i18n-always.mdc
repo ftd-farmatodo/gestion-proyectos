@@ -1,0 +1,24 @@
+---
+description: Enforce full UI internationalization for all changes
+alwaysApply: true
+---
+
+# Internacionalizacion obligatoria
+
+Para este proyecto, toda interfaz visible al usuario debe estar internacionalizada.
+
+## Reglas
+
+- No agregar textos hardcodeados en templates, componentes ni dialogs (titulos, botones, placeholders, labels, mensajes vacios, errores, toasts, confirmaciones).
+- Todo texto nuevo debe usar llaves de traduccion con `TranslatePipe` o el mecanismo i18n ya usado en el archivo.
+- Crear/actualizar siempre las entradas equivalentes en:
+  - `src/assets/i18n/es.json`
+  - `src/assets/i18n/en.json`
+- Mantener estructura espejo entre ambos idiomas (mismas llaves).
+- Si se reemplaza texto existente hardcodeado en un archivo tocado, migrarlo tambien a i18n en la misma tarea.
+
+## Checklist rapido antes de terminar
+
+1. No quedaron strings visibles hardcodeados en los archivos modificados.
+2. Se agregaron llaves en `es.json` y `en.json`.
+3. Placeholders y estados vacios tambien usan i18n.

@@ -5,8 +5,9 @@ import { Component, input, computed } from '@angular/core';
   standalone: true,
   template: `
     <div
-      class="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold tabular-nums"
-      [class]="colorClass()"
+      class="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold tabular-nums"
+      [style.background]="bgColor()"
+      [style.color]="textColor()"
     >
       {{ displayScore() }}
     </div>
@@ -20,10 +21,17 @@ export class PriorityScoreComponent {
     return s >= 10 ? Math.round(s).toString() : s.toFixed(1);
   });
 
-  colorClass(): string {
+  bgColor(): string {
     const s = this.score();
-    if (s >= 4) return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
-    if (s >= 2.5) return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+    if (s >= 4) return 'color-mix(in srgb, var(--magenta) 12%, transparent)';
+    if (s >= 2.5) return 'color-mix(in srgb, var(--orange) 12%, transparent)';
+    return 'color-mix(in srgb, var(--lime) 12%, transparent)';
+  }
+
+  textColor(): string {
+    const s = this.score();
+    if (s >= 4) return 'var(--magenta)';
+    if (s >= 2.5) return 'var(--orange)';
+    return 'var(--lime)';
   }
 }

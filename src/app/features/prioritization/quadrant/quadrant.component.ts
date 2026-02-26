@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CdkDropList, CdkDrag, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 import type { Request, QuadrantKey } from '../../../shared/models/request.model';
 import { RequestCardComponent } from '../../../shared/components/request-card/request-card.component';
@@ -15,16 +15,17 @@ import { PrioritizationService } from '../prioritization.service';
       [cdkDropListData]="requests()"
       [cdkDropListConnectedTo]="connectedTo()"
       (cdkDropListDropped)="onDrop($event)"
-      class="min-h-[200px] rounded-xl border-2 border-dashed p-4 transition-colors"
-      [class]="dropZoneClass()"
+      class="min-h-[200px] rounded-2xl border-2 border-dashed p-4 transition-all duration-200"
+      [style.border-color]="borderColor()"
+      [style.background]="bgColor()"
     >
-      <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide" [class]="titleClass()">
+      <h3 class="mb-3 text-xs font-bold uppercase tracking-wider" [style.color]="titleColor()">
         {{ title() }}
       </h3>
       <div class="space-y-2">
         @for (req of requests(); track req.id) {
           <div cdkDrag [cdkDragData]="req" class="cursor-grab active:cursor-grabbing">
-            <app-request-card [request]="req" />
+            <app-request-card [request]="req" (openDetail)="openDetail.emit($event)" />
             <div *cdkDragPlaceholder class="opacity-50">
               <app-request-card [request]="req" />
             </div>
@@ -39,23 +40,32 @@ export class QuadrantComponent {
   title = input.required<string>();
   requests = input.required<Request[]>();
   connectedTo = input<string[]>([]);
+  openDetail = output<Request>();
 
   quadrantId = () => this.quadrantKey();
 
-  dropZoneClass(): string {
+  borderColor(): string {
     const q = this.quadrantKey();
-    if (q === 'q1') return 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20';
-    if (q === 'q2') return 'border-amber-300 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20';
-    if (q === 'q3') return 'border-blue-300 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20';
-    return 'border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/20';
+    if (q === 'q1') return 'color-mix(in srgb, var(--magenta) 40%, transparent)';
+    if (q === 'q2') return 'color-mix(in srgb, var(--purple) 40%, transparent)';
+    if (q === 'q3') return 'color-mix(in srgb, var(--orange) 40%, transparent)';
+    return 'color-mix(in srgb, var(--cool-gray) 40%, transparent)';
   }
 
-  titleClass(): string {
+  bgColor(): string {
     const q = this.quadrantKey();
-    if (q === 'q1') return 'text-red-700 dark:text-red-400';
-    if (q === 'q2') return 'text-amber-700 dark:text-amber-400';
-    if (q === 'q3') return 'text-blue-700 dark:text-blue-400';
-    return 'text-slate-600 dark:text-slate-400';
+    if (q === 'q1') return 'color-mix(in srgb, var(--magenta) 4%, var(--surface-card))';
+    if (q === 'q2') return 'color-mix(in srgb, var(--purple) 4%, var(--surface-card))';
+    if (q === 'q3') return 'color-mix(in srgb, var(--orange) 4%, var(--surface-card))';
+    return 'color-mix(in srgb, var(--cool-gray) 4%, var(--surface-card))';
+  }
+
+  titleColor(): string {
+    const q = this.quadrantKey();
+    if (q === 'q1') return 'var(--magenta)';
+    if (q === 'q2') return 'var(--purple)';
+    if (q === 'q3') return 'var(--orange)';
+    return 'var(--cool-gray)';
   }
 
   constructor(private prioritization: PrioritizationService) {}
