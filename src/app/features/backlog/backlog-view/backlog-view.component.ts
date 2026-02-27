@@ -15,6 +15,7 @@ import { AppContextService } from '../../../core/services/app-context.service';
 import { UserStoreService } from '../../../core/services/user-store.service';
 import { CountryStore } from '../../../core/services/country-store.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { ObjectiveStoreService } from '../../../core/services/objective-store.service';
 import type { Request, RequestType, StatusConfig } from '../../../shared/models/request.model';
 import { getQuadrantForRequest } from '../../prioritization/prioritization.service';
 import {
@@ -89,6 +90,18 @@ import {
           <option value="mejora">{{ 'types.mejora' | translate }}</option>
           <option value="proyecto">{{ 'types.proyecto' | translate }}</option>
         </select>
+        <select [ngModel]="objectiveFilter()" (ngModelChange)="objectiveFilter.set($event)" class="gp-select gp-select-sm">
+          <option value="all">{{ 'backlog.allObjectives' | translate }}</option>
+          @for (obj of activeObjectives(); track obj.id) {
+            <option [value]="obj.id">{{ obj.code }} — {{ obj.title }}</option>
+          }
+        </select>
+        <select [ngModel]="personFilter()" (ngModelChange)="personFilter.set($event)" class="gp-select gp-select-sm">
+          <option value="all">{{ 'backlog.allPeople' | translate }}</option>
+          @for (dev of teamDevelopers(); track dev.id) {
+            <option [value]="dev.id">{{ dev.display_name ?? dev.email }}</option>
+          }
+        </select>
         <select [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)" class="gp-select gp-select-sm">
           <option value="score">{{ 'backlog.sortByScore' | translate }}</option>
           <option value="date">{{ 'backlog.sortByDate' | translate }}</option>
@@ -128,6 +141,7 @@ import {
               class="bl-card"
               [class.bl-card--unread]="!readTracker.isRead(req.id)"
               [style.animation-delay.ms]="i * 30"
+              [style.border-left-color]="typeColor(req.type)"
               (click)="openRequest(req)">
 
               <!-- Unread accent bar -->
@@ -175,13 +189,16 @@ import {
                     }
                   </span>
                 }
-                @if (req.developer_id) {
+                @for (a of getAssignees(req.id); track a.developer_id) {
                   <span class="bl-dev-chip">
                     <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/>
                     </svg>
-                    {{ getDeveloperName(req.developer_id) }}
+                    {{ getDeveloperName(a.developer_id) }}
                   </span>
+                }
+                @for (obj of getObjectives(req.id); track obj.id) {
+                  <span class="bl-obj-chip">{{ obj.code }}</span>
                 }
                 <span class="bl-impact-chip"
                   [style.--chip-color]="impactTextColor(req.importance)"
@@ -203,18 +220,6 @@ import {
                       (ngModelChange)="quickChangeStatus(req, $event)">
                       @for (s of statusOptions(); track s.key) {
                         <option [value]="s.key">{{ statusLabel(s) }}</option>
-                      }
-                    </select>
-                  </div>
-                  <div class="bl-action-group">
-                    <label class="bl-action-label">{{ 'detail.assignDeveloper' | translate }}</label>
-                    <select
-                      class="gp-select gp-select-sm bl-action-select"
-                      [ngModel]="req.developer_id"
-                      (ngModelChange)="quickAssignDeveloper(req, $event)">
-                      <option [ngValue]="null">{{ 'detail.unassigned' | translate }}</option>
-                      @for (dev of teamDevelopers(); track dev.id) {
-                        <option [ngValue]="dev.id">{{ dev.display_name ?? dev.email }}</option>
                       }
                     </select>
                   </div>
@@ -294,6 +299,67 @@ import {
         (closeDialog)="selectedRequest.set(null)"
         (addComment)="onAddComment($event)"
       />
+    }
+
+    <!-- In-progress gate modal -->
+    @if (showInProgressGate()) {
+      <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+           (click)="cancelInProgressGate()">
+        <div class="mx-4 w-full max-w-md rounded-2xl border p-6 shadow-2xl animate-slide-up"
+             style="background: var(--surface-card); border-color: var(--border)"
+             (click)="$event.stopPropagation()">
+          <h3 class="text-base font-bold mb-1" style="color: var(--on-surface)">{{ 'objectives.gateTitle' | translate }}</h3>
+          <p class="text-xs mb-4" style="color: var(--muted)">{{ 'objectives.gateHint' | translate }}</p>
+
+          <div class="mb-4">
+            <label class="block text-xs font-semibold mb-1.5" style="color: var(--on-surface)">{{ 'objectives.selectObjective' | translate }}</label>
+            @if (gateObjectiveOptions().length === 0) {
+              <p class="text-xs italic" style="color: var(--muted)">{{ 'objectives.noObjectives' | translate }}</p>
+            } @else {
+              <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                @for (obj of gateObjectiveOptions(); track obj.id) {
+                  <button (click)="toggleGateObjective(obj.id)"
+                    class="rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all"
+                    [style.background]="gateSelectedObjectives().includes(obj.id) ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent'"
+                    [style.border-color]="gateSelectedObjectives().includes(obj.id) ? 'var(--accent)' : 'var(--border)'"
+                    [style.color]="gateSelectedObjectives().includes(obj.id) ? 'var(--accent)' : 'var(--muted)'">
+                    {{ obj.code }} &mdash; {{ obj.title }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="mb-5">
+            <label class="block text-xs font-semibold mb-1.5" style="color: var(--on-surface)">{{ 'objectives.selectAssignees' | translate }}</label>
+            <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+              @for (dev of teamDevelopers(); track dev.id) {
+                <button (click)="toggleGateAssignee(dev.id)"
+                  class="rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all"
+                  [style.background]="gateSelectedAssignees().includes(dev.id) ? 'color-mix(in srgb, var(--primary-light) 15%, transparent)' : 'transparent'"
+                  [style.border-color]="gateSelectedAssignees().includes(dev.id) ? 'var(--primary-light)' : 'var(--border)'"
+                  [style.color]="gateSelectedAssignees().includes(dev.id) ? 'var(--primary-light)' : 'var(--muted)'">
+                  {{ dev.display_name || dev.email }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <button (click)="cancelInProgressGate()"
+              class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+              style="color: var(--muted)">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button (click)="confirmInProgressGate()"
+              [disabled]="gateSelectedObjectives().length === 0 || gateSelectedAssignees().length === 0 || gateSaving()"
+              class="rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40"
+              style="background: var(--accent)">
+              {{ gateSaving() ? ('common.loading' | translate) : ('common.confirm' | translate) }}
+            </button>
+          </div>
+        </div>
+      </div>
     }
   `,
   styles: [`
@@ -480,11 +546,12 @@ import {
       display: flex;
       flex-direction: column;
       gap: 0.375rem;
-      padding: 0.625rem 0.75rem;
+      padding: 0.625rem 0.75rem 0.625rem 1rem;
       background: var(--surface-card);
       cursor: pointer;
       transition: background-color 0.15s ease;
       animation: slide-up-sm 0.3s cubic-bezier(0.22,1,0.36,1) both;
+      border-left: 3px solid transparent;
     }
     .bl-card:hover {
       background: color-mix(in srgb, var(--accent) 3%, var(--surface-card));
@@ -496,15 +563,15 @@ import {
       background: color-mix(in srgb, var(--magenta) 4%, var(--surface-card));
     }
 
-    /* Unread accent bar */
+    /* Unread dot indicator */
     .bl-card-unread-bar {
       position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
+      right: 0.5rem;
+      top: 0.5rem;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
       background: var(--magenta);
-      border-radius: 0 2px 2px 0;
     }
 
     /* ─── Card row 1: main ─── */
@@ -598,6 +665,17 @@ import {
       gap: 0.25rem;
       font-size: 0.6875rem;
       font-weight: 500;
+      color: var(--accent);
+    }
+    .bl-obj-chip {
+      display: inline-flex;
+      align-items: center;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+      font-size: 0.5625rem;
+      font-weight: 700;
+      padding: 0.1rem 0.375rem;
+      border-radius: 0.25rem;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
       color: var(--accent);
     }
     .bl-impact-chip {
@@ -714,15 +792,26 @@ export class BacklogViewComponent {
   private userStore = inject(UserStoreService);
   private countryStore = inject(CountryStore);
   private confirmDialog = inject(ConfirmDialogService);
+  private objectiveStore = inject(ObjectiveStoreService);
   fyCloseService = inject(FiscalYearCloseService);
   readTracker = inject(BacklogReadTrackerService);
 
   selectedRequest = signal<Request | null>(null);
   showCloseFYDialog = signal(false);
+
+  showInProgressGate = signal(false);
+  gateRequest = signal<Request | null>(null);
+  gateSelectedObjectives = signal<string[]>([]);
+  gateSelectedAssignees = signal<string[]>([]);
+  gateObjectiveOptions = computed(() => this.objectiveStore.activeObjectives());
+  gateSaving = signal(false);
   typeFilter = signal<string>('all');
+  objectiveFilter = signal<string>('all');
+  personFilter = signal<string>('all');
   sortBy = signal<string>('score');
   searchQuery = signal<string>('');
   statusOptions = computed(() => this.statusConfig.active());
+  activeObjectives = computed(() => this.objectiveStore.activeObjectives());
   teamDevelopers = computed(() => {
     const teamId = this.appContext.activeTeamId();
     return this.userStore.all().filter(
@@ -739,13 +828,25 @@ export class BacklogViewComponent {
   filteredRequests = computed(() => {
     let list = this.backlogRequests();
 
-    // Type filter
     const type = this.typeFilter();
     if (type !== 'all') {
       list = list.filter((r) => r.type === type);
     }
 
-    // Search
+    const objective = this.objectiveFilter();
+    if (objective !== 'all') {
+      list = list.filter((r) =>
+        this.objectiveStore.getObjectivesByRequestId(r.id).some((o) => o.id === objective)
+      );
+    }
+
+    const person = this.personFilter();
+    if (person !== 'all') {
+      list = list.filter((r) =>
+        this.objectiveStore.getAssigneesByRequestId(r.id).some((a) => a.developer_id === person)
+      );
+    }
+
     const q = this.searchQuery().toLowerCase().trim();
     if (q) {
       list = list.filter(
@@ -756,7 +857,6 @@ export class BacklogViewComponent {
       );
     }
 
-    // Sort
     const sort = this.sortBy();
     list = [...list].sort((a, b) => {
       switch (sort) {
@@ -853,13 +953,29 @@ export class BacklogViewComponent {
   }
 
   hasActiveFilters(): boolean {
-    return this.typeFilter() !== 'all' || this.searchQuery().trim().length > 0 || this.sortBy() !== 'score';
+    return (
+      this.typeFilter() !== 'all' ||
+      this.objectiveFilter() !== 'all' ||
+      this.personFilter() !== 'all' ||
+      this.searchQuery().trim().length > 0 ||
+      this.sortBy() !== 'score'
+    );
   }
 
   clearFilters(): void {
     this.typeFilter.set('all');
+    this.objectiveFilter.set('all');
+    this.personFilter.set('all');
     this.sortBy.set('score');
     this.searchQuery.set('');
+  }
+
+  getAssignees(requestId: string) {
+    return this.objectiveStore.getAssigneesByRequestId(requestId);
+  }
+
+  getObjectives(requestId: string) {
+    return this.objectiveStore.getObjectivesByRequestId(requestId);
   }
 
   async quickChangeStatus(req: Request, nextStatus: string): Promise<void> {
@@ -868,6 +984,19 @@ export class BacklogViewComponent {
       this.quickPrioritize(req);
       return;
     }
+
+    if (nextStatus === 'in_progress') {
+      const objectives = this.objectiveStore.getObjectivesByRequestId(req.id);
+      const assignees = this.objectiveStore.getAssigneesByRequestId(req.id);
+      if (objectives.length === 0 || assignees.length === 0) {
+        this.gateRequest.set(req);
+        this.gateSelectedObjectives.set(objectives.map((o) => o.id));
+        this.gateSelectedAssignees.set(assignees.map((a) => a.developer_id));
+        this.showInProgressGate.set(true);
+        return;
+      }
+    }
+
     if (nextStatus === 'done' || nextStatus === 'cancelled') {
       const confirmed = await this.confirmDialog.confirm({
         title: 'Confirmar cambio de estado',
@@ -884,14 +1013,38 @@ export class BacklogViewComponent {
     });
   }
 
-  quickAssignDeveloper(req: Request, developerId: string | null): void {
-    const value = developerId || null;
-    if (value === req.developer_id) return;
+  toggleGateObjective(id: string): void {
+    this.gateSelectedObjectives.update((list) =>
+      list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
+    );
+  }
+
+  toggleGateAssignee(id: string): void {
+    this.gateSelectedAssignees.update((list) =>
+      list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
+    );
+  }
+
+  async confirmInProgressGate(): Promise<void> {
+    const req = this.gateRequest();
+    if (!req || this.gateSelectedObjectives().length === 0 || this.gateSelectedAssignees().length === 0) return;
+    this.gateSaving.set(true);
+    await this.objectiveStore.setRequestObjectives(req.id, this.gateSelectedObjectives());
+    await this.objectiveStore.setRequestAssignees(req.id, this.gateSelectedAssignees());
+    this.showInProgressGate.set(false);
+    this.gateSaving.set(false);
     this.store.updateRequest(req.id, {
-      developer_id: value,
+      status: 'in_progress',
       updated_at: new Date().toISOString(),
     });
+    this.gateRequest.set(null);
   }
+
+  cancelInProgressGate(): void {
+    this.showInProgressGate.set(false);
+    this.gateRequest.set(null);
+  }
+
 
   async confirmCloseFY(): Promise<void> {
     const teamId = this.appContext.activeTeamId();

@@ -13,9 +13,10 @@ import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import type { Team } from '../../../shared/models/team.model';
 import type { StatusConfig } from '../../../shared/models/request.model';
 import type { UserRole } from '../../../core/auth/auth.model';
+import { ObjectiveStoreService } from '../../../core/services/objective-store.service';
 import { TEAM_EMOJI_OPTIONS, ROLE_OPTIONS, STATUS_COLOR_OPTIONS } from './settings-layout.config';
 
-type SettingsTab = 'teams' | 'statuses' | 'fiscal' | 'departments' | 'countries' | 'modules';
+type SettingsTab = 'teams' | 'statuses' | 'fiscal' | 'departments' | 'countries' | 'modules' | 'objectives';
 
 @Component({
   selector: 'app-settings-layout',
@@ -76,6 +77,13 @@ type SettingsTab = 'teams' | 'statuses' | 'fiscal' | 'departments' | 'countries'
                 [style.color]="activeTab() === 'modules' ? 'var(--on-surface)' : 'var(--muted)'"
                 [style.box-shadow]="activeTab() === 'modules' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'">
           {{ 'settings.tabModules' | translate }}
+        </button>
+        <button (click)="activeTab.set('objectives')"
+                class="flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all"
+                [style.background]="activeTab() === 'objectives' ? 'var(--surface-card)' : 'transparent'"
+                [style.color]="activeTab() === 'objectives' ? 'var(--on-surface)' : 'var(--muted)'"
+                [style.box-shadow]="activeTab() === 'objectives' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'">
+          {{ 'settings.tabObjectives' | translate }}
         </button>
       </div>
 
@@ -619,6 +627,107 @@ type SettingsTab = 'teams' | 'statuses' | 'fiscal' | 'departments' | 'countries'
         </div>
       }
 
+      <!-- Objectives Tab -->
+      @if (activeTab() === 'objectives') {
+        <div class="dash-card p-6">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h2 class="text-base font-semibold" style="color: var(--on-surface)">{{ 'objectives.title' | translate }}</h2>
+              <p class="text-xs mt-0.5" style="color: var(--muted)">{{ 'objectives.subtitle' | translate }}</p>
+            </div>
+            <button (click)="showObjForm.set(!showObjForm())"
+                    class="rounded-xl px-4 py-2 text-xs font-semibold text-white transition-all hover:shadow-md"
+                    style="background: var(--accent)">
+              {{ 'objectives.addObjective' | translate }}
+            </button>
+          </div>
+
+          @if (objFormError(); as err) {
+            <div class="mb-4 rounded-lg px-3 py-2 text-xs font-semibold" style="background: color-mix(in srgb, var(--magenta) 10%, transparent); color: var(--magenta)">{{ err }}</div>
+          }
+
+          <!-- Add/Edit form -->
+          @if (showObjForm()) {
+            <div class="mb-5 rounded-2xl border p-4 space-y-3" style="border-color: var(--border); background: var(--surface-alt)">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--muted)">{{ 'objectives.code' | translate }}</label>
+                  <input [(ngModel)]="newObjCode" [placeholder]="'objectives.codePlaceholder' | translate"
+                         class="gp-input w-full" />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--muted)">{{ 'objectives.year' | translate }}</label>
+                  <div class="gp-input w-full" style="opacity: 0.7; cursor: default">{{ currentObjYear }}</div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--muted)">{{ 'objectives.objectiveTitle' | translate }}</label>
+                <input [(ngModel)]="newObjTitle" [placeholder]="'objectives.titlePlaceholder' | translate"
+                       class="gp-input w-full" />
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--muted)">{{ 'objectives.description' | translate }}</label>
+                <textarea [(ngModel)]="newObjDescription" [placeholder]="'objectives.descriptionPlaceholder' | translate"
+                          class="gp-input w-full" rows="2"></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button (click)="saveObjective()"
+                        class="rounded-xl px-6 py-2 text-xs font-semibold text-white transition-all hover:shadow-md"
+                        style="background: var(--accent)">
+                  {{ 'common.save' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- Objectives list (current period) -->
+          <div class="space-y-2">
+            @for (obj of filteredObjectives(); track obj.id) {
+              <div class="flex items-center gap-3 rounded-xl border px-4 py-3 transition-all hover:shadow-sm"
+                   style="border-color: var(--border); background: var(--surface-card)">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-[10px] px-1.5 py-0.5 rounded"
+                          style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">{{ obj.code }}</span>
+                    <span class="text-sm font-semibold" style="color: var(--on-surface)">{{ obj.title }}</span>
+                    @if (!obj.is_active) {
+                      <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded"
+                            style="background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--muted)">
+                        {{ 'objectives.inactive' | translate }}
+                      </span>
+                    }
+                  </div>
+                  @if (obj.description) {
+                    <p class="text-[11px] mt-0.5" style="color: var(--muted)">{{ obj.description }}</p>
+                  }
+                </div>
+                <div class="flex gap-1.5 shrink-0">
+                  <button (click)="editObjective(obj)"
+                          class="rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-colors"
+                          style="color: var(--primary-light)">
+                    {{ 'objectives.edit' | translate }}
+                  </button>
+                  <button (click)="toggleObjectiveActive(obj)"
+                          class="rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-colors"
+                          [style.color]="obj.is_active ? 'var(--orange)' : 'var(--lime)'">
+                    {{ obj.is_active ? ('objectives.deactivate' | translate) : ('objectives.activate' | translate) }}
+                  </button>
+                  <button (click)="removeObjective(obj)"
+                          class="rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-colors"
+                          style="color: var(--magenta)">
+                    {{ 'common.delete' | translate }}
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="text-center py-8">
+                <p class="text-sm italic" style="color: var(--muted)">{{ 'objectives.noObjectivesYet' | translate }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <!-- Period Configuration Tab -->
       @if (activeTab() === 'fiscal') {
         <div class="dash-card p-6">
@@ -662,6 +771,7 @@ export class SettingsLayoutComponent {
   deptStore = inject(DepartmentStore);
   countryStore = inject(CountryStore);
   moduleStore = inject(AffectedModuleStore);
+  objectiveStore = inject(ObjectiveStoreService);
   private confirmDialog = inject(ConfirmDialogService);
   private i18n = inject(I18nService);
 
@@ -1001,5 +1111,98 @@ export class SettingsLayoutComponent {
 
   formatDate(date: Date): string {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // ─── Objectives management ───
+  showObjForm = signal(false);
+  objFormError = signal<string | null>(null);
+  editingObjId: string | null = null;
+  newObjCode = '';
+  newObjTitle = '';
+  newObjDescription = '';
+
+  get currentObjYear(): number {
+    return this.objectiveStore.getCurrentYear();
+  }
+
+  readonly filteredObjectives = computed(() => {
+    const year = this.currentObjYear;
+    return this.objectiveStore.allTeamObjectives().filter((o) => o.year === year);
+  });
+
+  editObjective(obj: import('../../../shared/models/request.model').Objective): void {
+    this.editingObjId = obj.id;
+    this.newObjCode = obj.code;
+    this.newObjTitle = obj.title;
+    this.newObjDescription = obj.description ?? '';
+    this.showObjForm.set(true);
+  }
+
+  async saveObjective(): Promise<void> {
+    this.objFormError.set(null);
+    const code = this.newObjCode.trim().toUpperCase();
+    const title = this.newObjTitle.trim();
+    if (!code || !title) return;
+
+    const teamId = this.visibleTeams()[0]?.id;
+    if (!teamId) return;
+
+    if (this.editingObjId) {
+      const ok = await this.objectiveStore.updateObjective(this.editingObjId, {
+        code,
+        title,
+        description: this.newObjDescription.trim() || undefined,
+      });
+      if (!ok) {
+        this.objFormError.set(this.i18n.t('objectives.saveError'));
+        return;
+      }
+    } else {
+      const result = await this.objectiveStore.createObjective({
+        team_id: teamId,
+        year: this.currentObjYear,
+        code,
+        title,
+        description: this.newObjDescription.trim() || undefined,
+        is_active: true,
+      });
+      if (!result) {
+        this.objFormError.set(this.i18n.t('objectives.saveError'));
+        return;
+      }
+    }
+
+    this.resetObjForm();
+  }
+
+  async toggleObjectiveActive(obj: import('../../../shared/models/request.model').Objective): Promise<void> {
+    this.objFormError.set(null);
+    const ok = await this.objectiveStore.updateObjective(obj.id, { is_active: !obj.is_active });
+    if (!ok) {
+      this.objFormError.set(this.i18n.t('objectives.saveError'));
+    }
+  }
+
+  async removeObjective(obj: import('../../../shared/models/request.model').Objective): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: this.i18n.t('objectives.deleteTitle'),
+      message: this.i18n.t('objectives.deleteConfirm').replace('{name}', obj.title),
+      confirmText: this.i18n.t('common.delete'),
+      cancelText: this.i18n.t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    const ok = await this.objectiveStore.deleteObjective(obj.id);
+    if (!ok) {
+      this.objFormError.set(this.i18n.t('objectives.deleteError'));
+    }
+  }
+
+  private resetObjForm(): void {
+    this.editingObjId = null;
+    this.newObjCode = '';
+    this.newObjTitle = '';
+    this.newObjDescription = '';
+    this.showObjForm.set(false);
   }
 }

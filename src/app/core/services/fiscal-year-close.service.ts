@@ -7,6 +7,7 @@ import { AuthService } from '../auth/auth.service';
 import { TeamStore } from './team-store.service';
 import { UserStoreService } from './user-store.service';
 import { SupabaseService } from './supabase.service';
+import { ObjectiveStoreService } from './objective-store.service';
 
 const LEGACY_FY_CLOSED_KEY = 'gp_fy_closed';
 
@@ -19,6 +20,7 @@ export class FiscalYearCloseService {
   private teamStore = inject(TeamStore);
   private userStore = inject(UserStoreService);
   private supabase = inject(SupabaseService);
+  private objectiveStore = inject(ObjectiveStoreService);
 
   private _closedYears = signal<FiscalYearCloseRecord[]>([]);
 
@@ -135,6 +137,9 @@ export class FiscalYearCloseService {
       );
       return false;
     }
+
+    const closingYear = this.objectiveStore.getCurrentYear();
+    await this.objectiveStore.deactivateObjectivesForYear(teamId, closingYear);
 
     const nextFYKey = this.fyService.getNextPeriodKey();
     for (const r of pending) {

@@ -40,7 +40,7 @@ import type { Request } from '../../../shared/models/request.model';
       @if (submissions.loading()) {
         <app-loading-spinner />
       } @else {
-        <div class="space-y-3">
+        <div class="space-y-5">
           @for (req of submissions.myRequests(); track req.id) {
             <app-request-card [request]="req" (openDetail)="openRequest(req.id)" />
           }

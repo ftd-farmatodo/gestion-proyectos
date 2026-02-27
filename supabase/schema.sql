@@ -486,6 +486,87 @@ INSERT INTO fiscal_years (key, label, start_date, end_date, period_number, is_cu
   ('FY2026', 'Período Actual', now(), null, 1, true)
 ON CONFLICT (key) DO NOTHING;
 
+-- -----------------------------------------------------------------------------
+-- Objectives (annual goals per team, admin-managed)
+-- -----------------------------------------------------------------------------
+CREATE TABLE objectives (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  year INTEGER NOT NULL,
+  code TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  target_metric INTEGER NOT NULL DEFAULT 0, -- deprecated: kept for backward compat, no longer used by app
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (team_id, year, code)
+);
+
+CREATE INDEX idx_objectives_team_year_active ON objectives(team_id, year, is_active);
+
+CREATE TRIGGER trigger_objectives_updated_at
+  BEFORE UPDATE ON objectives
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+-- Request-to-Objective mapping (N:N)
+CREATE TABLE request_objectives (
+  request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
+  objective_id UUID NOT NULL REFERENCES objectives(id) ON DELETE CASCADE,
+  PRIMARY KEY (request_id, objective_id)
+);
+
+CREATE INDEX idx_request_objectives_objective ON request_objectives(objective_id);
+
+-- Request-to-Developer multi-assignment
+CREATE TABLE request_assignees (
+  request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
+  developer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  assigned_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  PRIMARY KEY (request_id, developer_id)
+);
+
+CREATE INDEX idx_request_assignees_developer ON request_assignees(developer_id);
+
+-- RLS: objectives
+ALTER TABLE objectives ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "objectives_select_authenticated"
+  ON objectives FOR SELECT TO authenticated USING (true);
+CREATE POLICY "objectives_insert_admin"
+  ON objectives FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role = 'admin'));
+CREATE POLICY "objectives_update_admin"
+  ON objectives FOR UPDATE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role = 'admin'));
+CREATE POLICY "objectives_delete_admin"
+  ON objectives FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role = 'admin'));
+
+-- RLS: request_objectives
+ALTER TABLE request_objectives ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "request_objectives_select_authenticated"
+  ON request_objectives FOR SELECT TO authenticated USING (true);
+CREATE POLICY "request_objectives_insert_dev_admin"
+  ON request_objectives FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role IN ('developer', 'admin')));
+CREATE POLICY "request_objectives_delete_dev_admin"
+  ON request_objectives FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role IN ('developer', 'admin')));
+
+-- RLS: request_assignees
+ALTER TABLE request_assignees ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "request_assignees_select_authenticated"
+  ON request_assignees FOR SELECT TO authenticated USING (true);
+CREATE POLICY "request_assignees_insert_dev_admin"
+  ON request_assignees FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role IN ('developer', 'admin')));
+CREATE POLICY "request_assignees_delete_dev_admin"
+  ON request_assignees FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles p WHERE p.id = (select auth.uid()) AND p.role IN ('developer', 'admin')));
+
 -- DELETE policies (added for production hardening)
 CREATE POLICY "requests_delete_admin" ON requests FOR DELETE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
@@ -496,3 +577,16 @@ CREATE POLICY "fiscal_closures_delete_admin" ON fiscal_closures FOR DELETE USING
 CREATE POLICY "fiscal_years_delete_admin" ON fiscal_years FOR DELETE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+-- -----------------------------------------------------------------------------
+-- Backfill: migrate existing developer_id to request_assignees
+-- (run once after deploying objectives feature)
+-- -----------------------------------------------------------------------------
+-- INSERT INTO request_assignees (request_id, developer_id, assigned_by)
+-- SELECT r.id, r.developer_id, r.developer_id
+-- FROM requests r
+-- WHERE r.developer_id IS NOT NULL
+--   AND NOT EXISTS (
+--     SELECT 1 FROM request_assignees ra
+--     WHERE ra.request_id = r.id AND ra.developer_id = r.developer_id
+--   );

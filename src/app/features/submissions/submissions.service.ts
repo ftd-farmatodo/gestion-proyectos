@@ -15,7 +15,7 @@ export class SubmissionsService {
     const user = this.auth.user();
     if (!user) return [];
     if (user.role === 'functional') {
-      return this.store.contextRequests().filter((r) => r.team_id === user.team_id);
+      return this.store.contextRequests().filter((r) => user.department && r.requester_department === user.department);
     }
     return this.store.contextRequests().filter((r) => r.requester_id === user.id);
   });

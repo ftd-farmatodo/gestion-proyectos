@@ -197,6 +197,7 @@
     "unassigned": "Sin asignar",
     "allAssignment": "Todos",
     "allPeople": "Todas las personas",
+    "allObjectives": "Todos los objetivos",
     "showing": "Mostrando",
     "of": "de",
     "clearFilters": "Limpiar filtros"
@@ -286,7 +287,9 @@
     "carriedOver": "Trasladadas",
     "completedLabel": "Completadas",
     "totalActivities": "actividades en total",
-    "clearFilter": "Limpiar"
+    "clearFilter": "Limpiar",
+    "allObjectives": "Todos los objetivos",
+    "allPeople": "Todos los responsables"
   },
   "tracking": {
     "title": "Seguimiento semanal",
@@ -464,7 +467,8 @@
     "colorPurple": "Morado",
     "colorGreen": "Verde",
     "colorMagenta": "Magenta",
-    "colorAccent": "Accent"
+    "colorAccent": "Accent",
+    "tabObjectives": "Objetivos"
   },
   "teamSetup": {
     "title": "Selecciona tu equipo",
@@ -477,6 +481,44 @@
     "confirm": "Confirmar",
     "customPlaceholder": "Otra área (escribe y presiona Enter)",
     "teamAssignmentNote": "Tu equipo será asignado por un administrador después de validar tu acceso."
+  },
+  "objectives": {
+    "title": "Objetivos anuales",
+    "subtitle": "Gestiona los objetivos del equipo para el periodo en curso. Al cerrar el periodo, se desactivan automáticamente.",
+    "addObjective": "Agregar objetivo",
+    "code": "Código",
+    "codePlaceholder": "Ej: OBJ-01",
+    "objectiveTitle": "Título",
+    "titlePlaceholder": "Ej: Reducir incidencias en un 30%",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Describe el objetivo y su alcance",
+    "targetMetric": "Meta (cantidad de actividades)",
+    "year": "Año",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "edit": "Editar",
+    "deactivate": "Desactivar",
+    "activate": "Activar",
+    "deleteTitle": "Eliminar objetivo",
+    "deleteConfirm": "¿Eliminar el objetivo \"{name}\"? Se desvinculará de todas las solicitudes asociadas.",
+    "saveError": "No se pudo guardar el objetivo (duplicado o sin permisos).",
+    "deleteError": "No se pudo eliminar el objetivo.",
+    "gateTitle": "Requisitos para iniciar",
+    "gateHint": "Para pasar a 'En progreso', selecciona al menos un objetivo y uno o más desarrolladores responsables.",
+    "selectObjective": "Objetivo(s)",
+    "selectAssignees": "Desarrollador(es) responsable(s)",
+    "noObjectives": "No hay objetivos activos. Un administrador debe crear objetivos desde Configuración.",
+    "progress": "Progreso de objetivos",
+    "progressSubtitle": "Avance del equipo por objetivo en el año fiscal actual.",
+    "completed": "completadas",
+    "of": "de",
+    "activities": "actividades",
+    "viewActivities": "Ver actividades",
+    "noObjectivesYet": "No hay objetivos definidos para este periodo.",
+    "noObjectivesHint": "Un administrador puede crear objetivos desde la sección de Configuración.",
+    "assignees": "Responsables",
+    "objectivesLabel": "Objetivos",
+    "empty": "Sin datos"
   },
   "notFound": {
     "title": "Página no encontrada",

@@ -121,6 +121,27 @@ export interface PriorityInferenceTrace {
   answers: Record<string, string>;
 }
 
+/** Annual objective (admin-managed, per team/year) */
+export interface Objective {
+  id: string;
+  team_id: string;
+  year: number;
+  code: string;
+  title: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Multi-assignment of a developer to a request */
+export interface RequestAssignee {
+  request_id: string;
+  developer_id: string;
+  assigned_at: string;
+  assigned_by: string | null;
+}
+
 /** Eisenhower quadrant key */
 export type QuadrantKey = 'q1' | 'q2' | 'q3' | 'q4';
 

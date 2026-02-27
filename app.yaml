@@ -5,7 +5,7 @@
 # 3) gcloud app deploy app.yaml
 
 service: gestion-proyectos
-runtime: nodejs22
+runtime: nodejs24   
 env: standard
 
 instance_class: F1

@@ -197,6 +197,7 @@
     "unassigned": "Unassigned",
     "allAssignment": "All",
     "allPeople": "All people",
+    "allObjectives": "All objectives",
     "showing": "Showing",
     "of": "of",
     "clearFilters": "Clear filters"
@@ -283,7 +284,9 @@
     "carriedOver": "Carried over",
     "completedLabel": "Completed",
     "totalActivities": "total activities",
-    "clearFilter": "Clear"
+    "clearFilter": "Clear",
+    "allObjectives": "All objectives",
+    "allPeople": "All assignees"
   },
   "tracking": {
     "title": "Weekly tracking",
@@ -406,7 +409,8 @@
     "roleFunctional": "Functional",
     "roleDeveloper": "Developer",
     "roleAdmin": "Administrator",
-    "roleUpdateError": "Could not update the member's role."
+    "roleUpdateError": "Could not update the member's role.",
+    "tabObjectives": "Objectives"
   },
   "teamSetup": {
     "title": "Select your team",
@@ -419,6 +423,44 @@
     "confirm": "Confirm",
     "customPlaceholder": "Other area (type and press Enter)",
     "teamAssignmentNote": "Your team will be assigned by an administrator after validating your access."
+  },
+  "objectives": {
+    "title": "Annual Objectives",
+    "subtitle": "Manage team objectives for the current period. They are automatically deactivated when the period is closed.",
+    "addObjective": "Add Objective",
+    "code": "Code",
+    "codePlaceholder": "E.g.: OBJ-01",
+    "objectiveTitle": "Title",
+    "titlePlaceholder": "E.g.: Reduce incidents by 30%",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the objective and its scope",
+    "targetMetric": "Target (number of activities)",
+    "year": "Year",
+    "active": "Active",
+    "inactive": "Inactive",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "activate": "Activate",
+    "deleteTitle": "Delete Objective",
+    "deleteConfirm": "Delete objective \"{name}\"? It will be unlinked from all associated requests.",
+    "saveError": "Could not save the objective (duplicate or insufficient permissions).",
+    "deleteError": "Could not delete the objective.",
+    "gateTitle": "Requirements to start",
+    "gateHint": "To move to 'In Progress', select at least one objective and one or more responsible developers.",
+    "selectObjective": "Objective(s)",
+    "selectAssignees": "Responsible developer(s)",
+    "noObjectives": "No active objectives. An administrator must create objectives from Settings.",
+    "progress": "Objectives Progress",
+    "progressSubtitle": "Team progress by objective in the current fiscal year.",
+    "completed": "completed",
+    "of": "of",
+    "activities": "activities",
+    "viewActivities": "View activities",
+    "noObjectivesYet": "No objectives defined for this period.",
+    "noObjectivesHint": "An administrator can create objectives from the Settings section.",
+    "assignees": "Assignees",
+    "objectivesLabel": "Objectives",
+    "empty": "No data"
   },
   "notFound": {
     "title": "Page not found",

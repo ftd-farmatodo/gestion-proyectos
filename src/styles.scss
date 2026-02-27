@@ -146,6 +146,48 @@ body {
     }
   }
 
+  /* ── Custom text input / textarea ── */
+  .gp-input {
+    display: block;
+    width: 100%;
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--on-surface);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &::placeholder {
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--ring);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .dark .gp-input {
+    background-color: var(--surface-card);
+    color: var(--on-surface);
+  }
+
   /* Compact variant for filter bars */
   .gp-select-sm {
     padding: 0.375rem 2rem 0.375rem 0.625rem;

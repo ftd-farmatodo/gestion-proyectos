@@ -9,6 +9,7 @@ import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { StatusConfigStore } from '../../../core/services/status-config.service';
 import { AppContextService } from '../../../core/services/app-context.service';
 import { UserStoreService } from '../../../core/services/user-store.service';
+import { ObjectiveStoreService } from '../../../core/services/objective-store.service';
 import type { Request, RequestType, StatusConfig } from '../../../shared/models/request.model';
 
 const QUADRANT_IDS = ['q1', 'q2', 'q3', 'q4'] as const;
@@ -109,6 +110,17 @@ type AssignmentFilter = 'all' | 'assigned' | 'unassigned';
           }
         </select>
 
+        <!-- Objective filter dropdown -->
+        <select
+          [ngModel]="objectiveFilter()"
+          (ngModelChange)="objectiveFilter.set($event)"
+          class="gp-select gp-select-sm">
+          <option value="all">{{ 'matrix.allObjectives' | translate }}</option>
+          @for (obj of activeObjectives(); track obj.id) {
+            <option [value]="obj.id">{{ obj.code }} — {{ obj.title }}</option>
+          }
+        </select>
+
         <!-- Counter -->
         <span class="text-[11px] font-medium" style="color: var(--muted)">
           {{ 'matrix.showing' | translate }} {{ filteredTotal() }} {{ 'matrix.of' | translate }} {{ totalRequests() }}
@@ -176,6 +188,7 @@ export class MatrixComponent implements OnDestroy {
   private appContext = inject(AppContextService);
   private route = inject(ActivatedRoute);
   private userStore = inject(UserStoreService);
+  private objectiveStore = inject(ObjectiveStoreService);
 
   quadrantIds = QUADRANT_IDS as unknown as string[];
   selectedRequest = signal<Request | null>(null);
@@ -191,11 +204,15 @@ export class MatrixComponent implements OnDestroy {
   /** Active statuses for the status filter */
   activeStatuses = computed(() => this.statusConfigStore.active());
 
+  /** Active objectives for the objective filter */
+  activeObjectives = computed(() => this.objectiveStore.activeObjectives());
+
   /** Filter state */
   typeFilter = signal<'all' | RequestType>('all');
   assignmentFilter = signal<AssignmentFilter>('all');
   personFilter = signal<string>('all');
   statusFilter = signal<string>('all');
+  objectiveFilter = signal<string>('all');
 
   private querySub: Subscription;
 
@@ -224,19 +241,28 @@ export class MatrixComponent implements OnDestroy {
 
     const assign = this.assignmentFilter();
     if (assign === 'assigned') {
-      list = list.filter((r) => r.developer_id != null);
+      list = list.filter((r) => this.objectiveStore.getAssigneesByRequestId(r.id).length > 0);
     } else if (assign === 'unassigned') {
-      list = list.filter((r) => r.developer_id == null);
+      list = list.filter((r) => this.objectiveStore.getAssigneesByRequestId(r.id).length === 0);
     }
 
     const person = this.personFilter();
     if (person !== 'all') {
-      list = list.filter((r) => r.developer_id === person);
+      list = list.filter((r) =>
+        this.objectiveStore.getAssigneesByRequestId(r.id).some((a) => a.developer_id === person)
+      );
     }
 
     const status = this.statusFilter();
     if (status !== 'all') {
       list = list.filter((r) => r.status === status);
+    }
+
+    const objective = this.objectiveFilter();
+    if (objective !== 'all') {
+      list = list.filter((r) =>
+        this.objectiveStore.getObjectivesByRequestId(r.id).some((o) => o.id === objective)
+      );
     }
 
     return list;
@@ -262,7 +288,8 @@ export class MatrixComponent implements OnDestroy {
       this.typeFilter() !== 'all' ||
       this.assignmentFilter() !== 'all' ||
       this.personFilter() !== 'all' ||
-      this.statusFilter() !== 'all'
+      this.statusFilter() !== 'all' ||
+      this.objectiveFilter() !== 'all'
     );
   }
 
@@ -271,6 +298,7 @@ export class MatrixComponent implements OnDestroy {
     this.assignmentFilter.set('all');
     this.personFilter.set('all');
     this.statusFilter.set('all');
+    this.objectiveFilter.set('all');
   }
 
   onOpenDetail(request: Request): void {

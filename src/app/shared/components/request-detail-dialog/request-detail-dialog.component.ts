@@ -17,6 +17,7 @@ import { UserStoreService } from '../../../core/services/user-store.service';
 import { CountryStore } from '../../../core/services/country-store.service';
 import { AffectedModuleStore } from '../../../core/services/affected-module-store.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { ObjectiveStoreService } from '../../../core/services/objective-store.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { formatDurationLabel } from './request-detail-dialog.utils';
 
@@ -223,56 +224,113 @@ import { formatDurationLabel } from './request-detail-dialog.utils';
 
           <!-- ═══ Status & Assignment controls (admin/developer only) ═══ -->
           @if (canManage()) {
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- Status change -->
-              <div class="rounded-2xl border p-3" style="background: var(--surface-alt); border-color: var(--border)">
-                <div class="text-[10px] font-semibold uppercase tracking-wider mb-2" style="color: var(--muted)">
-                  {{ 'detail.changeStatus' | translate }}
-                </div>
-                <div class="flex flex-wrap gap-1.5">
-                  @for (t of allowedTransitions(); track t.key) {
-                    <button
-                      (click)="onChangeStatus(t.key)"
-                      class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all hover:shadow-sm"
-                      [style.background]="t.bgColor"
-                      [style.color]="t.color"
-                    >
-                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                      </svg>
-                      {{ statusLabel(t) }}
-                    </button>
-                  }
-                  @if (allowedTransitions().length === 0) {
-                    <span class="text-[11px] italic" style="color: var(--muted)">{{ 'detail.noTransitions' | translate }}</span>
-                  }
-                </div>
+            <!-- Status change -->
+            <div class="rounded-2xl border p-3" style="background: var(--surface-alt); border-color: var(--border)">
+              <div class="text-[10px] font-semibold uppercase tracking-wider mb-2" style="color: var(--muted)">
+                {{ 'detail.changeStatus' | translate }}
               </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (t of allowedTransitions(); track t.key) {
+                  <button
+                    (click)="onChangeStatus(t.key)"
+                    class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all hover:shadow-sm"
+                    [style.background]="t.bgColor"
+                    [style.color]="t.color"
+                  >
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                    </svg>
+                    {{ statusLabel(t) }}
+                  </button>
+                }
+                @if (allowedTransitions().length === 0) {
+                  <span class="text-[11px] italic" style="color: var(--muted)">{{ 'detail.noTransitions' | translate }}</span>
+                }
+              </div>
+            </div>
 
-              <!-- Developer assignment -->
+          }
+
+          <!-- Objectives & Assignees (editable for admin/dev, read-only for others) -->
+          @if (canManage()) {
+            <div class="space-y-3">
+              <!-- Objectives picker -->
               <div class="rounded-2xl border p-3" style="background: var(--surface-alt); border-color: var(--border)">
-                <div class="text-[10px] font-semibold uppercase tracking-wider mb-2" style="color: var(--muted)">
-                  {{ 'detail.assignDeveloper' | translate }}
-                </div>
-                <select
-                  [ngModel]="request().developer_id"
-                  (ngModelChange)="onAssignDeveloper($event)"
-                  class="w-full gp-select">
-                  <option [ngValue]="null">{{ 'detail.unassigned' | translate }}</option>
-                  @for (dev of developers(); track dev.id) {
-                    <option [ngValue]="dev.id">{{ dev.display_name ?? dev.email }}</option>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--muted)">
+                    {{ 'objectives.objectivesLabel' | translate }}
+                  </div>
+                  @if (savingObjAssignees()) {
+                    <span class="text-[10px] italic" style="color: var(--accent)">{{ 'common.loading' | translate }}</span>
                   }
-                </select>
-                @if (assignedDeveloperName()) {
-                  <div class="mt-1.5 flex items-center gap-1.5">
-                    <div class="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold"
-                      style="background: var(--accent); color: white">
-                      {{ assignedDeveloperName()!.charAt(0) }}
-                    </div>
-                    <span class="text-[11px] font-medium" style="color: var(--on-surface)">{{ assignedDeveloperName() }}</span>
+                </div>
+                @if (gateObjectiveOptions().length === 0) {
+                  <p class="text-[11px] italic" style="color: var(--muted)">{{ 'objectives.noObjectives' | translate }}</p>
+                } @else {
+                  <div class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                    @for (obj of gateObjectiveOptions(); track obj.id) {
+                      <button (click)="toggleDirectObjective(obj.id)"
+                        class="rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all"
+                        [style.background]="isObjectiveLinked(obj.id) ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent'"
+                        [style.border-color]="isObjectiveLinked(obj.id) ? 'var(--accent)' : 'var(--border)'"
+                        [style.color]="isObjectiveLinked(obj.id) ? 'var(--accent)' : 'var(--muted)'">
+                        {{ obj.code }} &mdash; {{ obj.title }}
+                      </button>
+                    }
                   </div>
                 }
               </div>
+
+              <!-- Assignees picker -->
+              <div class="rounded-2xl border p-3" style="background: var(--surface-alt); border-color: var(--border)">
+                <div class="text-[10px] font-semibold uppercase tracking-wider mb-2" style="color: var(--muted)">
+                  {{ 'objectives.assignees' | translate }}
+                </div>
+                <div class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                  @for (dev of developers(); track dev.id) {
+                    <button (click)="toggleDirectAssignee(dev.id)"
+                      class="rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all"
+                      [style.background]="isAssigneeLinked(dev.id) ? 'color-mix(in srgb, var(--primary-light) 15%, transparent)' : 'transparent'"
+                      [style.border-color]="isAssigneeLinked(dev.id) ? 'var(--primary-light)' : 'var(--border)'"
+                      [style.color]="isAssigneeLinked(dev.id) ? 'var(--primary-light)' : 'var(--muted)'">
+                      {{ dev.display_name || dev.email }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else if (requestObjectives().length > 0 || requestAssignees().length > 0) {
+            <div class="space-y-2">
+              @if (requestObjectives().length > 0) {
+                <div class="rounded-2xl border p-3" style="background: var(--surface-alt); border-color: var(--border)">
+                  <div class="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--muted)">
+                    {{ 'objectives.objectivesLabel' | translate }}
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    @for (obj of requestObjectives(); track obj.id) {
+                      <span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-semibold"
+                            style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent)">
+                        {{ obj.code }} &mdash; {{ obj.title }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+              @if (requestAssignees().length > 0) {
+                <div class="rounded-2xl border p-3" style="background: var(--surface-alt); border-color: var(--border)">
+                  <div class="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--muted)">
+                    {{ 'objectives.assignees' | translate }}
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (a of requestAssignees(); track a.developer_id) {
+                      <span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-semibold"
+                            style="background: color-mix(in srgb, var(--primary-light) 12%, transparent); color: var(--primary-light)">
+                        {{ getAssigneeName(a.developer_id) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
             </div>
           }
 
@@ -495,6 +553,69 @@ import { formatDurationLabel } from './request-detail-dialog.utils';
         </div>
       </div>
     </div>
+
+    <!-- In-progress gate modal -->
+    @if (showInProgressGate()) {
+      <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+           (click)="cancelInProgressGate()">
+        <div class="mx-4 w-full max-w-md rounded-2xl border p-6 shadow-2xl animate-slide-up"
+             style="background: var(--surface-card); border-color: var(--border)"
+             (click)="$event.stopPropagation()">
+          <h3 class="text-base font-bold mb-1" style="color: var(--on-surface)">{{ 'objectives.gateTitle' | translate }}</h3>
+          <p class="text-xs mb-4" style="color: var(--muted)">{{ 'objectives.gateHint' | translate }}</p>
+
+          <!-- Objective selection -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold mb-1.5" style="color: var(--on-surface)">{{ 'objectives.selectObjective' | translate }}</label>
+            @if (gateObjectiveOptions().length === 0) {
+              <p class="text-xs italic" style="color: var(--muted)">{{ 'objectives.noObjectives' | translate }}</p>
+            } @else {
+              <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                @for (obj of gateObjectiveOptions(); track obj.id) {
+                  <button (click)="toggleGateObjective(obj.id)"
+                    class="rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all"
+                    [style.background]="gateSelectedObjectives().includes(obj.id) ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent'"
+                    [style.border-color]="gateSelectedObjectives().includes(obj.id) ? 'var(--accent)' : 'var(--border)'"
+                    [style.color]="gateSelectedObjectives().includes(obj.id) ? 'var(--accent)' : 'var(--muted)'">
+                    {{ obj.code }} &mdash; {{ obj.title }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Assignee selection -->
+          <div class="mb-5">
+            <label class="block text-xs font-semibold mb-1.5" style="color: var(--on-surface)">{{ 'objectives.selectAssignees' | translate }}</label>
+            <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+              @for (dev of developers(); track dev.id) {
+                <button (click)="toggleGateAssignee(dev.id)"
+                  class="rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all"
+                  [style.background]="gateSelectedAssignees().includes(dev.id) ? 'color-mix(in srgb, var(--primary-light) 15%, transparent)' : 'transparent'"
+                  [style.border-color]="gateSelectedAssignees().includes(dev.id) ? 'var(--primary-light)' : 'var(--border)'"
+                  [style.color]="gateSelectedAssignees().includes(dev.id) ? 'var(--primary-light)' : 'var(--muted)'">
+                  {{ dev.display_name || dev.email }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <button (click)="cancelInProgressGate()"
+              class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+              style="color: var(--muted)">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button (click)="confirmInProgressGate()"
+              [disabled]="gateSelectedObjectives().length === 0 || gateSelectedAssignees().length === 0 || gateSaving()"
+              class="rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40"
+              style="background: var(--accent)">
+              {{ gateSaving() ? ('common.loading' | translate) : ('common.confirm' | translate) }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class RequestDetailDialogComponent {
@@ -509,6 +630,7 @@ export class RequestDetailDialogComponent {
   private countryStore = inject(CountryStore);
   moduleStore = inject(AffectedModuleStore);
   private confirmDialog = inject(ConfirmDialogService);
+  private objectiveStore = inject(ObjectiveStoreService);
   private i18n = inject(I18nService);
 
   request = input.required<Request>();
@@ -526,6 +648,50 @@ export class RequestDetailDialogComponent {
   blockerText = '';
   showProgressForm = signal(false);
   showBlockerForm = signal(false);
+
+  showInProgressGate = signal(false);
+  gateSelectedObjectives = signal<string[]>([]);
+  gateSelectedAssignees = signal<string[]>([]);
+  gateObjectiveOptions = computed(() => this.objectiveStore.activeObjectives());
+  gateSaving = signal(false);
+  savingObjAssignees = signal(false);
+
+  requestObjectives = computed(() =>
+    this.objectiveStore.getObjectivesByRequestId(this.liveRequest().id)
+  );
+  requestAssignees = computed(() =>
+    this.objectiveStore.getAssigneesByRequestId(this.liveRequest().id)
+  );
+
+  isObjectiveLinked(objId: string): boolean {
+    return this.requestObjectives().some((o) => o.id === objId);
+  }
+
+  isAssigneeLinked(devId: string): boolean {
+    return this.requestAssignees().some((a) => a.developer_id === devId);
+  }
+
+  async toggleDirectObjective(objId: string): Promise<void> {
+    const reqId = this.liveRequest().id;
+    const current = this.requestObjectives().map((o) => o.id);
+    const next = current.includes(objId)
+      ? current.filter((id) => id !== objId)
+      : [...current, objId];
+    this.savingObjAssignees.set(true);
+    await this.objectiveStore.setRequestObjectives(reqId, next);
+    this.savingObjAssignees.set(false);
+  }
+
+  async toggleDirectAssignee(devId: string): Promise<void> {
+    const reqId = this.liveRequest().id;
+    const current = this.requestAssignees().map((a) => a.developer_id);
+    const next = current.includes(devId)
+      ? current.filter((id) => id !== devId)
+      : [...current, devId];
+    this.savingObjAssignees.set(true);
+    await this.objectiveStore.setRequestAssignees(reqId, next);
+    this.savingObjAssignees.set(false);
+  }
 
   /** Developers available for assignment */
   developers = computed(() => {
@@ -547,7 +713,8 @@ export class RequestDetailDialogComponent {
     const user = this.auth.user();
     if (!user) return false;
     const req = this.liveRequest();
-    return req.developer_id === user.id && req.status !== 'done';
+    const isAssigned = this.requestAssignees().some((a) => a.developer_id === user.id);
+    return isAssigned && req.status !== 'done';
   }
 
   /** Whether the context is read-only (viewing another team or past FY) */
@@ -587,16 +754,29 @@ export class RequestDetailDialogComponent {
     return this.countryStore.getByCode(code)?.name ?? code;
   }
 
-  /** Name of the currently assigned developer */
-  assignedDeveloperName(): string | null {
-    const devId = this.liveRequest().developer_id;
-    if (!devId) return null;
-    const dev = this.userStore.getById(devId);
-    return dev?.display_name ?? dev?.email ?? null;
+
+  getAssigneeName(developerId: string): string {
+    const dev = this.userStore.getById(developerId);
+    return dev?.display_name ?? dev?.email ?? developerId;
   }
+
+  private pendingInProgressStatus: string | null = null;
 
   /** Change the status of the request */
   async onChangeStatus(newStatus: string): Promise<void> {
+    if (newStatus === 'in_progress') {
+      const reqId = this.liveRequest().id;
+      const objectives = this.objectiveStore.getObjectivesByRequestId(reqId);
+      const assignees = this.objectiveStore.getAssigneesByRequestId(reqId);
+      if (objectives.length === 0 || assignees.length === 0) {
+        this.pendingInProgressStatus = newStatus;
+        this.gateSelectedObjectives.set(objectives.map((o) => o.id));
+        this.gateSelectedAssignees.set(assignees.map((a) => a.developer_id));
+        this.showInProgressGate.set(true);
+        return;
+      }
+    }
+
     if (newStatus === 'done' || newStatus === 'cancelled') {
       const confirmed = await this.confirmDialog.confirm({
         title: 'Confirmar cambio de estado',
@@ -613,13 +793,38 @@ export class RequestDetailDialogComponent {
     });
   }
 
-  /** Assign a developer */
-  onAssignDeveloper(developerId: string | null): void {
-    this.store.updateRequest(this.liveRequest().id, {
-      developer_id: developerId,
+  toggleGateObjective(id: string): void {
+    this.gateSelectedObjectives.update((list) =>
+      list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
+    );
+  }
+
+  toggleGateAssignee(id: string): void {
+    this.gateSelectedAssignees.update((list) =>
+      list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
+    );
+  }
+
+  async confirmInProgressGate(): Promise<void> {
+    if (this.gateSelectedObjectives().length === 0 || this.gateSelectedAssignees().length === 0) return;
+    this.gateSaving.set(true);
+    const reqId = this.liveRequest().id;
+    await this.objectiveStore.setRequestObjectives(reqId, this.gateSelectedObjectives());
+    await this.objectiveStore.setRequestAssignees(reqId, this.gateSelectedAssignees());
+    this.showInProgressGate.set(false);
+    this.gateSaving.set(false);
+    this.store.updateRequest(reqId, {
+      status: this.pendingInProgressStatus ?? 'in_progress',
       updated_at: new Date().toISOString(),
     });
+    this.pendingInProgressStatus = null;
   }
+
+  cancelInProgressGate(): void {
+    this.showInProgressGate.set(false);
+    this.pendingInProgressStatus = null;
+  }
+
 
   activities = computed<ActivityEntry[]>(() => {
     const all = this.activityStore.sorted();

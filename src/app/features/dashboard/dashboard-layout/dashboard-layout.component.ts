@@ -6,6 +6,7 @@ import { PriorityQueueComponent } from '../priority-queue/priority-queue.compone
 import { RecentActivityComponent } from '../recent-activity/recent-activity.component';
 import { RecognitionSpotlightComponent } from '../recognition-spotlight/recognition-spotlight.component';
 import { KpiStripComponent } from '../kpi-strip/kpi-strip.component';
+import { ObjectivesProgressComponent } from '../objectives-progress/objectives-progress.component';
 import { AppContextService } from '../../../core/services/app-context.service';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -20,6 +21,7 @@ import { I18nService } from '../../../core/services/i18n.service';
     RecentActivityComponent,
     RecognitionSpotlightComponent,
     KpiStripComponent,
+    ObjectivesProgressComponent,
     RouterLink,
     TranslatePipe,
   ],
@@ -70,6 +72,11 @@ import { I18nService } from '../../../core/services/i18n.service';
       <!-- Recognition Spotlight -->
       <div class="mb-6 animate-scale-in stagger-3">
         <app-recognition-spotlight />
+      </div>
+
+      <!-- Objectives Progress -->
+      <div class="mb-6 animate-scale-in stagger-4">
+        <app-objectives-progress />
       </div>
 
       <!-- Two-column: Team Pulse + Metrics -->
